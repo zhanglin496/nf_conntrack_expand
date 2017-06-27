@@ -77,7 +77,7 @@ int nf_ct_expand_type_register(struct nf_ct_expand_type *type)
 	u32 hash;
 
 	if (strlen(type->name) + 1 > NF_EXPAND_NAMSIZ)
-		return -E2BIG;
+		return -EINVAL;
 
 	hash = nf_ct_expand_name_hash(type->name) & NF_EXP_TYPE_HASH_MASK;
 	mutex_lock(&nf_ct_exp_type_mutex);
