@@ -329,7 +329,7 @@ void *nf_ct_expand_area_add(struct nf_conn *ct, const char *name, gfp_t gfp)
 }
 EXPORT_SYMBOL_GPL(nf_ct_expand_area_add);
 
-static struct nf_ct_ext_type nf_ext_expand __read_mostly = {
+static const struct nf_ct_ext_type nf_ext_expand = {
 	.destroy = nf_ct_expand_destroy,
 	.len	= sizeof(struct nf_conn_expand),
 	.align = __alignof__(struct nf_conn_expand),
