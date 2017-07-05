@@ -198,13 +198,13 @@ static void nf_ct_expand_destroy(struct nf_conn *ct)
 static void nf_ct_cleanup_expand(void)
 {	
 	struct nf_conn_expand_table *tbl, *tbl_n;
-	LIST_HEAD(exp_list);
+	struct list_head exp_list;
 
 	/* rcu locked avoid nf_ct_ext_free free extend areas in advance */
 	rcu_read_lock();
 
 	spin_lock_bh(&expand_lock);
-	list_splice_init(&expand_list, &exp_list);
+	list_replace_init(&expand_list, &exp_list);
 	spin_unlock_bh(&expand_lock);
 
 	list_for_each_entry_safe(tbl, tbl_n, &exp_list, list) {
