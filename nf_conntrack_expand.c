@@ -103,7 +103,7 @@ int nf_ct_expand_type_unregister(struct nf_ct_expand_type *type)
 	mutex_lock(&nf_ct_exp_type_mutex);
 	hlist_for_each_entry(exp_type, &nf_expand_type_hash[hash], node) {
 		if (!strcmp(exp_type->name, type->name)) {
-			BUG_ON(exp_type != type);
+			WARN_ON(exp_type != type);
 			hlist_del_rcu(&exp_type->node);
 			ret = 0;
 			break;
@@ -307,7 +307,7 @@ void *nf_ct_expand_area_add(struct nf_conn *ct, const char *name, gfp_t gfp)
 		return NULL;
 	}
 	off = ALIGN(sizeof(*area), type->align);
-	BUG_ON(off < sizeof(*area));
+	WARN_ON(off < sizeof(*area));
 	len = type->len;
 	rcu_read_unlock();
 
