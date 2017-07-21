@@ -58,9 +58,9 @@ struct nf_ct_expand_area {
 	/* these four elements for internal use */
 	struct rcu_head rcu;
 	struct hlist_node node;
-	char name[NF_EXPAND_NAMSIZ];
 	/* user data off */
 	int off;
+	/* area name off = sizeof(struct nf_ct_expand_area) */
 	/* user data */
 };
 
@@ -75,9 +75,6 @@ int nf_ct_expand_type_register(struct nf_ct_expand_type *type)
 	struct nf_ct_expand_type *exp_type;
 	int ret = 0;
 	u32 hash;
-
-	if (strlen(type->name) + 1 > NF_EXPAND_NAMSIZ)
-		return -EINVAL;
 
 	hash = nf_ct_expand_name_hash(type->name) & NF_EXP_TYPE_HASH_MASK;
 	mutex_lock(&nf_ct_exp_type_mutex);
@@ -136,7 +133,7 @@ nf_ct_get_expand_area(struct nf_conn_expand_table *tbl, const char *name)
 	u32 hash = nf_ct_expand_name_hash(name) & NF_EXP_TBL_HASH_MASK;
 
 	hlist_for_each_entry(area, &tbl->hash[hash], node) {
-		if (!strcmp(area->name, name))
+		if (!strcmp((void *)area + sizeof(*area), name))
 			return area;
 	}
 	return NULL;
@@ -153,7 +150,7 @@ static void nf_ct_expand_table_destroy(struct nf_conn_expand_table *tbl)
 		hlist_for_each_entry_safe(area, n, &tbl->hash[i], node) {
 			hlist_del(&area->node);
 			rcu_read_lock();
-			type = nf_ct_get_expand_type_rcu(area->name);
+			type = nf_ct_get_expand_type_rcu((void *)area + sizeof(*area));
 			if (type && type->destroy)
 				type->destroy((void *)area + area->off);
 			rcu_read_unlock();
@@ -274,7 +271,7 @@ EXPORT_SYMBOL_GPL(nf_ct_expand_area_find);
 /* Add a new data area to nf_conn_expand */
 void *nf_ct_expand_area_add(struct nf_conn *ct, const char *name, gfp_t gfp)
 {
-	int len, off;
+	int len, off, name_len;
 	u32 hash;
 	struct nf_conn_expand *exp;
 	struct nf_conn_expand_table *tbl;
@@ -300,14 +297,15 @@ void *nf_ct_expand_area_add(struct nf_conn *ct, const char *name, gfp_t gfp)
 			return NULL;
 	}
 
+	name_len = strlen(name) + 1;
 	rcu_read_lock();
 	type = nf_ct_get_expand_type_rcu(name);
 	if (!type) {
 		rcu_read_unlock();
 		return NULL;
 	}
-	off = ALIGN(sizeof(*area), type->align);
-	WARN_ON(off < sizeof(*area));
+	off = ALIGN(sizeof(*area) + name_len, type->align);
+	WARN_ON(off < sizeof(*area) + name_len);
 	len = type->len;
 	rcu_read_unlock();
 
@@ -320,7 +318,7 @@ void *nf_ct_expand_area_add(struct nf_conn *ct, const char *name, gfp_t gfp)
 	area = kmalloc(off + len, gfp);
 	if (!area)
 		return NULL;
-	strlcpy(area->name, name, NF_EXPAND_NAMSIZ);
+	memcpy((void *)area + sizeof(*area), name, name_len);
 	area->off = off;
 	hash = nf_ct_expand_name_hash(name) & NF_EXP_TBL_HASH_MASK;
 	hlist_add_head(&area->node, &tbl->hash[hash]);
