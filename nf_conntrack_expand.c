@@ -55,7 +55,7 @@ struct nf_conn_expand {
 };
 
 struct nf_ct_expand_area {
-	/* these four elements for internal use */
+	/* these three elements for internal use */
 	struct rcu_head rcu;
 	struct hlist_node node;
 	/* user data off */
